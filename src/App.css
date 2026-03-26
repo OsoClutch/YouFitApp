@@ -1,36 +1,106 @@
 * {
-   margin: 0;
-   padding: 0;
-   box-sizing: border-box;
-}
 
+  margin: 0;
+
+  padding: 0;
+
+  box-sizing: border-box;
+
+}
+ 
 body {
-  background: #000;
+
+  background: #000000;
+
   overflow: hidden;
-}
 
-.luma-container{
+}
+ 
+.luma-container {
+
   width: 100vw;
+
   height: 100vh;
-  background: #000;
+
+  background: #000000;
+
+  position: relative;
+
   display: flex;
-  flex-direction: column;
+
   align-items: center;
+
   justify-content: center;
-}
 
-.youfit-title{
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 12vw;
+}
+ 
+.camera-feed {
+
+  position: absolute;
+
+  top: 0;
+
+  left: 0;
+
+  width: 100%;
+
+  height: 100%;
+
+  object-fit: cover;
+
+}
+ 
+.overlay {
+
+  position: relative;
+
+  z-index: 10;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  justify-content: flex-end;
+
+  width: 100%;
+
+  height: 100%;
+
+  padding-bottom: 8vh;
+
+}
+ 
+.youfit-title {
+
+  font-family: Arial, sans-serif;
+
+  font-size: 10vw;
+
   font-weight: 700;
-  color: #ffffff;
-  letter-spacing: 0.1em;
-}
 
-.youfit-sub{
-  font-family:Arial, Helvetica, sans-serif;
-  font-size: 4vw;
-  color: #e63946
-  margin-top 20px;
-  letter-spacing: 0.05em;
+  color: #ffffff;
+
+  letter-spacing: 0.1em;
+
+  text-shadow: 0 0 40px rgba(0,0,0,0.8);
+
 }
+ 
+.youfit-sub {
+
+  font-family: Arial, sans-serif;
+
+  font-size: 3vw;
+
+  color: #E63946;
+
+  margin-top: 16px;
+
+  letter-spacing: 0.05em;
+
+  text-shadow: 0 0 20px rgba(0,0,0,0.8);
+
+}
+ 
