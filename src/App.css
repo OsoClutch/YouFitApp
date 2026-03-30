@@ -48,9 +48,9 @@ body {
 
   object-fit: cover;
 
-  transform: scale(1.8) translateY(15%);
+  transform: scale(2.0) translateY(-15%);
   
-  transform-origin: center top;
+  transform-origin: center center;
 
 }
  
