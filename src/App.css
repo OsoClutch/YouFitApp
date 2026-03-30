@@ -48,7 +48,7 @@ body {
 
   object-fit: cover;
 
-  transform: scale(2.2) translateY(8%);
+  transform: scale(2.0) translateY(-15%);
   
   transform-origin: center center;
 
