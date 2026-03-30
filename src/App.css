@@ -48,6 +48,10 @@ body {
 
   object-fit: cover;
 
+  transform: scale(1.8);
+  
+  transform-origin: center top;
+
 }
  
 .overlay {
