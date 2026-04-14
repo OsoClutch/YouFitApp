@@ -11,19 +11,19 @@ const config = {
 
   // Returns the API base URL for IDM-VTON backend.
   // Priority:
-  //   1. ?api=192.168.x.x:8000 URL parameter (for Vercel → local MacBook)
-  //   2. Same hostname as the page (for local dev on MacBook)
+  //   1. ?api= URL parameter (explicit override)
+  //   2. /api proxy path (when served from Vite dev server — same origin, no CORS/mixed content)
+  //   3. Direct localhost fallback
   getApiBaseUrl() {
     const params = new URLSearchParams(window.location.search);
     const apiParam = params.get("api");
     if (apiParam) {
-      // Support both "192.168.1.5:8000" and "http://192.168.1.5:8000"
       return apiParam.startsWith("http") ? apiParam : `http://${apiParam}`;
     }
-    if (window.location.hostname === "localhost") {
-      return "http://localhost:8000";
-    }
-    return `http://${window.location.hostname}:8000`;
+    // Use the Vite proxy — works for both localhost AND when Luma accesses
+    // the MacBook's Vite dev server via IP (e.g. http://10.26.73.20:5173)
+    // The proxy forwards /api/* to localhost:8000/* on the MacBook
+    return "/api";
   },
 };
 

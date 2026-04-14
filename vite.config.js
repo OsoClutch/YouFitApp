@@ -7,5 +7,13 @@ export default defineConfig({
   server: {
     host: '0.0.0.0', // Expose to network so Proto Luma can access
     port: 5173,
+    proxy: {
+      // Proxy /api calls to the FastAPI backend on port 8000
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+    },
   },
 })

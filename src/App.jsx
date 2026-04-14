@@ -190,11 +190,16 @@ function App() {
       const apiUrl = config.getApiBaseUrl();
       console.log("Sending try-on request to:", apiUrl + "/tryon");
 
+      // Add a timeout so the app doesn't hang forever
+      const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 min timeout
+
       const response = await fetch(apiUrl + "/tryon", {
         method: "POST",
         body: formData,
         signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errData = await response.json().catch(() => null);
