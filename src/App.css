@@ -222,6 +222,15 @@ body {
   text-shadow: 0 0 20px rgba(230, 57, 70, 0.5);
 }
 
+/* ===== ERROR BANNER ===== */
+.error-banner {
+  font-family: Arial, sans-serif;
+  font-size: 2vw;
+  color: #ff6b6b;
+  font-weight: 600;
+  text-shadow: 0 0 20px rgba(255, 107, 107, 0.4);
+}
+
 /* ===== LOADING OVERLAY ===== */
 .loading-overlay {
   position: absolute;

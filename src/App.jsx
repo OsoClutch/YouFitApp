@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { PoseLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
 import garments from "./garments";
 import config from "./config";
@@ -11,6 +11,7 @@ function App() {
   const animFrameRef = useRef(null);
   const garmentImgRef = useRef(null);
   const tryonResultRef = useRef(null);
+  const tryonResultUrlRef = useRef(null);
   const abortControllerRef = useRef(null);
   const isProcessingRef = useRef(false); // ref for animation loop access (avoids stale closure)
   const idleTimerRef = useRef(null);
@@ -33,7 +34,7 @@ function App() {
   }
 
   // ===== Idle Reset Timer (kiosk mode — 60s) =====
-  function resetIdleTimer() {
+  const resetIdleTimer = useCallback(() => {
     if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
     idleTimerRef.current = setTimeout(() => {
       console.log("Idle timeout — resetting to home screen");
@@ -46,7 +47,7 @@ function App() {
       setHasTryonResult(false);
       setError(null);
     }, 60000);
-  }
+  }, []);
 
   useEffect(() => {
     const events = ["click", "touchstart", "mousemove"];
@@ -57,7 +58,7 @@ function App() {
       events.forEach((e) => window.removeEventListener(e, handler));
       if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
     };
-  }, []);
+  }, [resetIdleTimer]);
 
   // ===== Camera + MediaPipe Setup =====
   useEffect(() => {
@@ -118,7 +119,8 @@ function App() {
           };
         }
       } catch (err) {
-        console.error("Setup error:", err);
+        console.error("Setup error:", err.message || err);
+        setError("Camera unavailable — please allow camera access and reload.");
       }
     }
 
@@ -155,6 +157,10 @@ function App() {
 
     updateProcessing(true);
     setError(null);
+    if (tryonResultUrlRef.current) {
+      URL.revokeObjectURL(tryonResultUrlRef.current);
+      tryonResultUrlRef.current = null;
+    }
     tryonResultRef.current = null;
     setHasTryonResult(false);
 
@@ -211,8 +217,8 @@ function App() {
       // Get result image
       const resultBlob = await response.blob();
       const resultUrl = URL.createObjectURL(resultBlob);
+      tryonResultUrlRef.current = resultUrl;
 
-      // Load into an Image for canvas rendering
       const resultImg = new Image();
       resultImg.onload = () => {
         tryonResultRef.current = resultImg;
@@ -341,6 +347,10 @@ function App() {
 
   // ===== Clear Result (back to live camera) =====
   function clearResult() {
+    if (tryonResultUrlRef.current) {
+      URL.revokeObjectURL(tryonResultUrlRef.current);
+      tryonResultUrlRef.current = null;
+    }
     tryonResultRef.current = null;
     setSelected(null);
     updateProcessing(false);
@@ -380,6 +390,9 @@ function App() {
           <div className="gender-screen">
             <h1 className="youfit-title">YOUFIT</h1>
             <p className="youfit-sub">Holographic AI Try-On</p>
+            {error && !gender && (
+              <p className="error-banner">{error}</p>
+            )}
             <p className="prompt-text">Who is shopping today?</p>
             <div className="gender-buttons">
               <button
