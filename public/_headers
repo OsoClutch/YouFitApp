@@ -1,0 +1,25 @@
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  # Camera must stay allowed for our own origin -- this is a try-on kiosk.
+  Permissions-Policy: camera=(self), microphone=(), geolocation=()
+
+# Vite fingerprints these, so they can never go stale.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Version-pinned but the filenames are stable, so cache hard and bust by
+# redeploying rather than forever.
+/mediapipe/*
+  Cache-Control: public, max-age=604800
+
+/garments/*
+  Cache-Control: public, max-age=86400
+
+# Both spellings: the kiosk requests "/", not "/index.html", and a stale
+# shell on an unattended display is the one cache failure that actually hurts.
+/
+  Cache-Control: no-cache
+
+/index.html
+  Cache-Control: no-cache

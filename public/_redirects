@@ -1,0 +1,10 @@
+# SPA fallback. Safe alongside the API because _routes.json sends /api/* to the
+# Pages Function before static-asset routing is ever consulted.
+#
+# `wrangler pages dev` logs "Infinite loop detected in this rule and has been
+# ignored" for this line, because Pages also auto-redirects /index.html -> /.
+# It is not a problem: unmatched paths resolve to index.html with or without
+# this rule (verified locally both ways). The rule is kept because it is the
+# documented Pages SPA pattern and this app would need it the moment anyone
+# adds a client-side route -- today it has none, so nothing depends on it.
+/*  /index.html  200

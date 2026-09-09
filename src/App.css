@@ -8,128 +8,205 @@
 body {
   background: #000000;
   overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* ===== CONTAINER ===== */
+/* ===== CONTAINER =====
+   One type scale drives the whole UI. The base is the smaller of a viewport
+   height and width fraction, so it behaves in portrait and landscape alike,
+   and --ui (from the device profile) shifts it for viewing distance. Sizes
+   below are all em, which is why there is no per-device stylesheet. */
 .luma-container {
+  --ui: 1;
+  --accent: #e63946;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: calc(clamp(11px, min(2.4vh, 3.6vw), 96px) * var(--ui));
   width: 100vw;
-  height: 100vh;
+  height: 100dvh;
   background: #000000;
   position: relative;
   overflow: hidden;
 }
 
-/* ===== CAMERA ===== */
+/* ===== CAMERA =====
+   No transform here. Framing used to be `scaleX(-1) scale(2.0) translateY(-15%)`
+   stacked on `object-fit: cover` -- correct on one panel, wrong everywhere else,
+   and invisible to the canvas so the image sent for inference never matched
+   what was on screen. Crop and mirror are both done in lib/capture.js now. */
+/* Visually hidden, but still laid out and painted. `display: none` can get a
+   video element's frame production throttled -- Safari in particular -- and
+   every frame we draw, capture and landmark comes from this element. */
 .camera-feed-hidden {
-  display: none;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 0;
 }
 
 .camera-canvas {
   position: absolute;
-  top: 0;
-  left: 0;
+  inset: 0;
   width: 100%;
   height: 100%;
   z-index: 1;
-  object-fit: cover;
-  transform: scaleX(-1); /* Mirror for natural try-on feel */
-  transform-origin: center center;
+  display: block;
 }
 
-.camera-canvas.luma-mode {
-  transform: scaleX(-1) scale(2.0) translateY(-15%);
-}
-
-/* ===== OVERLAY (transparent layer above canvas) ===== */
+/* ===== OVERLAY ===== */
 .overlay {
   position: absolute;
-  top: 0;
-  left: 0;
+  inset: 0;
   z-index: 10;
-  width: 100%;
-  height: 100%;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  background: transparent;
   pointer-events: none;
 }
 
-.overlay * {
+.overlay > * {
   pointer-events: auto;
 }
 
-/* ===== GENDER SELECTION SCREEN ===== */
-.gender-screen {
+/* ===== FRAMING GUIDE =====
+   Positioned by inline style onto the exact slice of the frame that will be
+   sent to the model, so standing inside the box is a real instruction. */
+.framing-guide {
+  position: absolute;
+  z-index: 5;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  pointer-events: none;
+  border: 0.06em dashed rgba(255, 255, 255, 0.35);
+  border-radius: 0.6em;
+  transition: opacity 0.3s ease;
+}
+
+.framing-guide.dimmed {
+  opacity: 0.25;
+}
+
+.framing-silhouette {
+  width: 46%;
+  height: 76%;
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.4);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 0.4em rgba(0, 0, 0, 0.7));
+}
+
+.framing-hint {
+  position: absolute;
+  bottom: 4%;
+  font-size: 1.1em;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #ffffff;
+  background: rgba(0, 0, 0, 0.55);
+  padding: 0.35em 1em;
+  border-radius: 2em;
+  text-align: center;
+}
+
+.framing-hint.good {
+  color: #7bd88f;
+}
+
+/* ===== ATTRACT / GENDER SCREEN ===== */
+.gender-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
   height: 100%;
-  gap: 2vh;
+  width: 100%;
+  padding: 4vh 4vw;
+  text-align: center;
+}
+
+.gender-screen-top,
+.gender-screen-bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.gender-screen-bottom {
+  gap: 0.8em;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0));
+  padding: 1.5em 2em 0.5em;
+  border-radius: 1em;
 }
 
 .youfit-title {
-  font-family: Arial, sans-serif;
-  font-size: 10vw;
+  font-size: 2.4em;
   font-weight: 700;
   color: #ffffff;
   letter-spacing: 0.1em;
-  text-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+  text-shadow: 0 0 1em rgba(0, 0, 0, 0.9);
 }
 
 .youfit-sub {
-  font-family: Arial, sans-serif;
-  font-size: 3vw;
-  color: #E63946;
-  letter-spacing: 0.05em;
-  text-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+  font-size: 0.85em;
+  color: var(--accent);
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 0.6em rgba(0, 0, 0, 0.9);
 }
 
 .prompt-text {
-  font-family: Arial, sans-serif;
-  font-size: 3.5vw;
+  font-size: 0.95em;
   color: #ffffff;
-  margin-top: 4vh;
   opacity: 0.9;
 }
 
 .gender-buttons {
   display: flex;
-  gap: 4vw;
-  margin-top: 3vh;
+  gap: 1.2em;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .gender-btn {
-  font-family: Arial, sans-serif;
-  font-size: 3.5vw;
+  font: inherit;
+  font-size: 1.1em;
   font-weight: 700;
   color: #ffffff;
-  background: transparent;
-  border: 3px solid #ffffff;
-  border-radius: 2vw;
-  padding: 2vh 6vw;
+  background: rgba(0, 0, 0, 0.3);
+  border: 0.09em solid #ffffff;
+  border-radius: 0.6em;
+  padding: 0.6em 2em;
   cursor: pointer;
   letter-spacing: 0.1em;
-  transition: all 0.2s ease;
+  transition: background 0.2s ease, border-color 0.2s ease;
 }
 
-.gender-btn:hover {
-  background: #E63946;
-  border-color: #E63946;
+.gender-btn:hover,
+.gender-btn:focus-visible {
+  background: var(--accent);
+  border-color: var(--accent);
+  outline: none;
 }
 
-/* ===== BOTTOM BAR (Catalog) ===== */
+/* ===== CATALOG BAR ===== */
 .bottom-bar {
   width: 100%;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.62);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  padding: 1.5vh 3vw;
+  padding: 0.8em 1.2em 1em;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1vh;
+  gap: 0.6em;
 }
 
 .bottom-bar-header {
@@ -137,127 +214,197 @@ body {
   width: 100%;
   justify-content: space-between;
   align-items: center;
+  gap: 1em;
 }
 
 .catalog-title {
-  font-family: Arial, sans-serif;
-  font-size: 2vw;
+  font-size: 0.85em;
   font-weight: 700;
   color: #ffffff;
 }
 
+.bar-actions {
+  display: flex;
+  gap: 0.6em;
+}
+
 .back-btn {
-  font-family: Arial, sans-serif;
-  font-size: 1.5vw;
+  font: inherit;
+  font-size: 0.7em;
   color: #ffffff;
   background: transparent;
-  border: 2px solid rgba(255, 255, 255, 0.5);
-  border-radius: 0.8vw;
-  padding: 0.5vh 2vw;
+  border: 0.09em solid rgba(255, 255, 255, 0.5);
+  border-radius: 0.5em;
+  padding: 0.4em 1.2em;
   cursor: pointer;
-  opacity: 0.7;
+  opacity: 0.75;
   transition: opacity 0.2s;
 }
 
-.back-btn:hover {
+.back-btn:hover,
+.back-btn:focus-visible {
   opacity: 1;
+  outline: none;
 }
 
 .outfit-carousel {
   display: flex;
-  flex-direction: row;
-  gap: 2vw;
+  gap: 0.8em;
   justify-content: center;
-  align-items: center;
+  align-items: stretch;
   width: 100%;
+  flex-wrap: wrap;
 }
 
 .outfit-card {
+  font: inherit;
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 0.2em;
   cursor: pointer;
-  border: 2px solid transparent;
-  border-radius: 1vw;
-  padding: 0.5vh 0.5vw;
+  border: 0.09em solid transparent;
+  border-radius: 0.5em;
+  padding: 0.35em;
   background: rgba(255, 255, 255, 0.08);
-  transition: all 0.2s ease;
-  width: 12vw;
+  transition: background 0.2s ease, border-color 0.2s ease;
+  width: 6em;
 }
 
-.outfit-card:hover {
-  background: rgba(255, 255, 255, 0.15);
+.outfit-card:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.outfit-card:not(:disabled):hover,
+.outfit-card:focus-visible {
+  background: rgba(255, 255, 255, 0.16);
   border-color: rgba(255, 255, 255, 0.4);
+  outline: none;
 }
 
 .outfit-card.selected {
-  border-color: #E63946;
-  background: rgba(230, 57, 70, 0.2);
+  border-color: var(--accent);
+  background: rgba(230, 57, 70, 0.22);
 }
 
 .outfit-image {
   width: 100%;
-  height: 8vh;
+  aspect-ratio: 3 / 4;
   object-fit: contain;
-  border-radius: 0.5vw;
+  border-radius: 0.3em;
+  background: #ffffff;
 }
 
 .outfit-label {
-  font-family: Arial, sans-serif;
-  font-size: 1.2vw;
+  font-size: 0.6em;
   color: #ffffff;
-  margin-top: 0.3vh;
   font-weight: 500;
   letter-spacing: 0.05em;
 }
 
-/* ===== SELECTED BANNER ===== */
-.selected-banner {
-  font-family: Arial, sans-serif;
-  font-size: 1.8vw;
-  color: #E63946;
+.confirm-btn {
+  font: inherit;
+  font-size: 0.95em;
   font-weight: 700;
-  margin-top: 0.5vh;
   letter-spacing: 0.05em;
-  text-shadow: 0 0 20px rgba(230, 57, 70, 0.5);
+  color: #ffffff;
+  background: var(--accent);
+  border: none;
+  border-radius: 0.6em;
+  padding: 0.6em 2.2em;
+  cursor: pointer;
+  box-shadow: 0 0 1.4em rgba(230, 57, 70, 0.45);
 }
 
-/* ===== ERROR BANNER ===== */
-.error-banner {
-  font-family: Arial, sans-serif;
-  font-size: 2vw;
-  color: #ff6b6b;
+.confirm-btn:hover,
+.confirm-btn:focus-visible {
+  filter: brightness(1.12);
+  outline: none;
+}
+
+/* ===== ERRORS =====
+   Surfaced on both screens. A camera failure after gender selection used to
+   be almost silent. */
+.error-banner,
+.bar-error {
+  font-size: 0.8em;
+  color: #ff8080;
   font-weight: 600;
-  text-shadow: 0 0 20px rgba(255, 107, 107, 0.4);
+  text-align: center;
+  text-shadow: 0 0 0.6em rgba(0, 0, 0, 0.8);
 }
 
-/* ===== LOADING OVERLAY ===== */
+/* ===== LOADING ===== */
 .loading-overlay {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.4);
-  z-index: 5;
+  gap: 0.6em;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 20;
   pointer-events: none;
 }
 
-.loading-text {
-  font-family: Arial, sans-serif;
-  font-size: 3vw;
-  color: #E63946;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-shadow: 0 0 30px rgba(230, 57, 70, 0.6);
-  animation: pulse 1.5s ease-in-out infinite;
+.loading-spinner {
+  width: 2em;
+  height: 2em;
+  border: 0.18em solid rgba(255, 255, 255, 0.2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
 }
 
-@keyframes pulse {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; }
+.loading-text {
+  font-size: 1.1em;
+  color: var(--accent);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-shadow: 0 0 0.8em rgba(230, 57, 70, 0.6);
+}
+
+.loading-sub {
+  font-size: 0.7em;
+  color: rgba(255, 255, 255, 0.75);
+  letter-spacing: 0.05em;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-spinner {
+    animation-duration: 3s;
+  }
+}
+
+/* ===== LANDSCAPE =====
+   Laptops and phones held sideways. Vertical room is the scarce resource, so
+   the catalog goes on one line and the attract screen stops reserving space
+   it does not have. */
+@media (orientation: landscape) {
+  .gender-screen {
+    justify-content: center;
+    gap: 1.2em;
+  }
+
+  .gender-screen-top {
+    gap: 0.2em;
+  }
+
+  .outfit-carousel {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+
+  .outfit-card {
+    width: 4.6em;
+    flex: 0 0 auto;
+  }
 }
