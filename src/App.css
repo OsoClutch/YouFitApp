@@ -104,9 +104,7 @@ body {
 }
 
 .framing-hint {
-  position: absolute;
-  bottom: 4%;
-  font-size: 1.1em;
+  font-size: 0.85em;
   font-weight: 700;
   letter-spacing: 0.04em;
   color: #ffffff;
@@ -118,6 +116,15 @@ body {
 
 .framing-hint.good {
   color: #7bd88f;
+}
+
+/* Every interactive control clears the 44px minimum touch target, even where
+   the em scale would shrink it below that on a phone. */
+.gender-btn,
+.back-btn,
+.confirm-btn,
+.outfit-card {
+  min-height: 44px;
 }
 
 /* ===== ATTRACT / GENDER SCREEN ===== */
@@ -177,6 +184,9 @@ body {
 
 .gender-btn {
   font: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: 1.1em;
   font-weight: 700;
   color: #ffffff;
@@ -230,6 +240,9 @@ body {
 
 .back-btn {
   font: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: 0.7em;
   color: #ffffff;
   background: transparent;
@@ -305,6 +318,9 @@ body {
 
 .confirm-btn {
   font: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: 0.95em;
   font-weight: 700;
   letter-spacing: 0.05em;

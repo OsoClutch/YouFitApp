@@ -54,19 +54,29 @@ function readOverride(search) {
 /**
  * Infer a profile from the viewport alone.
  *
- * Every Proto is a tall portrait volume, which is the one thing that reliably
- * separates them from the iPads, laptops and phones this also has to run on.
- * Among Protos, the pixel budget stands in for physical size.
+ * Aspect ratio alone cannot do this. A phone in portrait is *more* extreme
+ * than a Luma (0.46 vs 0.56), so "tall and narrow" identifies a Pixel just as
+ * happily as a hologram. What separates them is CSS pixel budget: a Proto is
+ * driven like a desktop display and reports its full native resolution, while
+ * a phone reports ~390-430px wide and a large iPad ~1024.
+ *
+ * So auto-detection only claims a Proto when the evidence is unambiguous, and
+ * everything else falls to 'tablet'. That bias is deliberate: guessing
+ * "touchscreen" on a Proto costs some UI scale until someone appends ?luma,
+ * whereas guessing "Proto" on a phone zooms the camera 1.5x into a face and
+ * inflates every control past the edge of the screen. The kiosk shortcut
+ * carries ?luma anyway.
  */
 function detect(width, height) {
   const aspect = width / height
+  const longEdge = Math.max(width, height)
+  const shortEdge = Math.min(width, height)
 
-  // Portrait and meaningfully taller than wide => holographic box.
+  // Portrait and physically large => holographic box.
   if (aspect < 0.8) {
-    const longEdge = Math.max(width, height)
     if (longEdge >= 3000) return 'luma' // 4K-class portrait panel, the 86" unit
-    if (longEdge >= 1600) return 'm2'
-    return 'proto'
+    // A tabletop M2 reports ~1080x1920. No phone reports a 1000px short edge.
+    if (longEdge >= 1900 && shortEdge >= 1000) return 'm2'
   }
 
   // Safety net for any unit that reports a landscape-ish viewport at the exact

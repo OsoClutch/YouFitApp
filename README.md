@@ -104,6 +104,35 @@ Pinned to 22 in `.node-version` and the devcontainer. Vite 8 requires
 `^20.19.0 || >=22.12.0`; on anything older npm silently skips the native
 rolldown binding and the build fails with a confusing missing-module error.
 
+### Testing
+
+```bash
+npm test        # 38 unit tests, no browser, no network — under a second
+npm run test:e2e  # 45 checks in headless Chrome against a running wrangler
+```
+
+The unit tests cover the pure logic that decides what the model sees: crop
+geometry, device profiling, framing verdicts, and the catalog contract shared
+with the Pages Function.
+
+The end-to-end suite needs three things running:
+
+```bash
+npm run build && npx wrangler pages dev dist --port 8788 --binding FAL_KEY=x
+scripts/chrome-headless.sh     # separate terminal
+npm run test:e2e               # separate terminal
+```
+
+Chrome's `--use-fake-device-for-media-stream` supplies a synthetic camera, so
+`getUserMedia`, the MediaPipe worker and the canvas all run with no hardware
+and no permission prompt. The try-on API is stubbed with an image that has a
+red stripe down the left and blue down the right — which is how the two result
+bugs stay fixed: a mirrored draw puts red on the right, and a stretched draw
+has no letterbox bars. Set `SHOT=/tmp/youfit` to write screenshots.
+
+Neither suite spends anything at fal. The one thing they cannot check is
+whether the garments actually *fit* — that needs a real key and human eyes.
+
 ---
 
 ## Deploying
@@ -246,6 +275,7 @@ src/
   lib/
     capture.js              crop geometry — preview, capture and guide agree
     device.js               device profiling
+    framing.js              landmarks -> one hint (pure, unit-tested)
     tryon.js                submit + poll client
     pose.worker.js          landmarker, off the main thread (classic worker)
     useFramingGuide.js      worker driver → one stable hint
@@ -254,7 +284,11 @@ src/
 public/
   garments/                 864×1152 packshots, committed
   mediapipe/                pinned wasm + model, ~17 MB
-scripts/export_garments.py  art pipeline (macOS)
+tests/                      unit tests (node --test)
+scripts/
+  export_garments.py        art pipeline (macOS)
+  e2e.mjs                   headless-Chrome end-to-end checks
+  chrome-headless.sh        launches Chrome with a fake camera
 ```
 
 ### Notes on two deliberate choices

@@ -3,7 +3,7 @@ import garments from './garments'
 import { captureRegionInDisplay, drawCameraFrame, drawContain } from './lib/capture'
 import { runTryon } from './lib/tryon'
 import { useDeviceProfile } from './lib/useDeviceProfile'
-import { useFramingGuide } from './lib/useFramingGuide'
+import { FRAMING_HINTS, useFramingGuide } from './lib/useFramingGuide'
 import { setupWakeLock } from './lib/wakelock'
 import FramingGuide from './components/FramingGuide'
 import GarmentBar from './components/GarmentBar'
@@ -42,7 +42,7 @@ export default function App() {
 
   const profile = useDeviceProfile()
   const showGuide = cameraReady && !gender && phase === 'live'
-  const { verdict } = useFramingGuide(videoRef, profile, showGuide)
+  const { verdict, ready: framingReady } = useFramingGuide(videoRef, profile, showGuide)
 
   // ===== Reset =====
   const resetToAttract = useCallback(() => {
@@ -246,7 +246,7 @@ export default function App() {
       <video ref={videoRef} autoPlay playsInline muted className="camera-feed-hidden" />
       <canvas ref={canvasRef} className="camera-canvas" />
 
-      {showGuide && <FramingGuide region={region} verdict={verdict} dimmed={Boolean(error)} />}
+      {showGuide && <FramingGuide region={region} dimmed={Boolean(error)} />}
 
       {phase === 'working' && (
         <LoadingOverlay
@@ -258,7 +258,13 @@ export default function App() {
 
       <div className="overlay">
         {!gender ? (
-          <GenderScreen onPick={setGender} error={error} cameraReady={cameraReady} />
+          <GenderScreen
+            onPick={setGender}
+            error={error}
+            cameraReady={cameraReady}
+            framingHint={showGuide ? FRAMING_HINTS[verdict] || null : null}
+            framingReady={framingReady}
+          />
         ) : (
           <GarmentBar
             garments={catalog}
