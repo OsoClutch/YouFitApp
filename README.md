@@ -8,6 +8,115 @@ GPU to keep alive, and no machine that has to stay switched on.
 
 ---
 
+## Status and next steps
+
+The app is complete and tested, but **it has never made a real inference
+call** — that needs a fal.ai key, which needs a card. Everything below is
+what stands between this branch and a live kiosk.
+
+### Where it stands
+
+| | |
+| --- | --- |
+| Backend, frontend, art pipeline, hosting config | done |
+| `npm test` — 38 unit tests | passing |
+| `npm run test:e2e` — 45 headless-Chrome checks | passing |
+| Real fal.ai inference | **never run** |
+| Deployed to Cloudflare | not yet |
+| Proto Luma hardware | not yet |
+
+Automated checks confirm the client actually runs: the camera opens with
+exactly one track, the canvas paints, MediaPipe initialises in the worker, the
+confirm step does not auto-fire, and the result renders unmirrored and
+letterboxed (verified by sampling canvas pixels, not by eye). Layout holds at
+390×844, 1024×1366 and 2160×3840 with no overflow and no sub-44px tap targets.
+
+### 1. Accounts
+
+[fal.ai](https://fal.ai) for an API key — this is the only thing that costs
+money, and it needs a card. A free [Cloudflare](https://dash.cloudflare.com)
+account for hosting.
+
+### 2. Deploy
+
+Cloudflare Pages → Create project → connect this repo.
+
+```
+Build command:      npm run build
+Output directory:   dist
+Environment vars:   FAL_KEY = <your key>
+```
+
+Then confirm the key is bound:
+
+```bash
+curl https://<project>.pages.dev/api/health
+# {"ok":true,...,"falKeyConfigured":true,...}
+```
+
+`.node-version` pins Node 22, which Pages reads automatically. Vite 8 requires
+`^20.19.0 || >=22.12.0`; on anything older npm silently skips the native
+rolldown binding and the build fails with a confusing missing-module error.
+
+### 3. Run the fit check — this is the gate
+
+**Do this before building anything else on top.** Open the deployed URL and
+run all three garments against 3–4 different people. Compare against the old
+IDM-VTON output.
+
+If fit is not visibly better, stop and re-examine capture framing before
+adding features. The three things that drive fit, in order, are mask quality
+(solved by using a maskless model), person framing (what the silhouette guide
+is for), and garment presentation (what `scripts/export_garments.py` is for).
+Fine-tuning is not on that list and will not help.
+
+> **The first real call is also the first test of the fal contract.** A bogus
+> key returns 401 *before* schema validation, so the parameter names in
+> `submitTryon()` have never been checked against a live request. If the first
+> try-on comes back 422, that is what it means — and it is a one-line fix in
+> `functions/api/[[path]].js`.
+
+### 4. Kiosk
+
+```
+chrome --kiosk --app=https://<project>.pages.dev \
+       --autoplay-policy=no-user-gesture-required
+```
+
+Camera access must never prompt, which needs the `VideoCaptureAllowedUrls`
+enterprise policy. Wildcards are not supported — list the origin explicitly:
+
+```json
+{ "VideoCaptureAllowedUrls": ["https://<project>.pages.dev"] }
+```
+
+### 5. Monitoring
+
+Point [cron-job.org](https://cron-job.org) at `/api/health` every 10 minutes
+with failure email on. Keep-warm is an advertised use of their free tier.
+UptimeRobot's free tier became non-commercial-only in December 2024.
+
+### 6. Soak it
+
+Leave the kiosk running for an hour. Watch for memory growth, confirm the idle
+reset returns to the attract screen after 60s, and confirm the watchdog reloads
+the page after three consecutive inference failures.
+
+### Known gaps
+
+- **M2-navy-blazer needs re-sourcing.** The original is 540×360 landscape, so
+  the export upscales ~2.9×. Usable, but visibly soft next to W2.
+- **The catalog is three garments** — two men's, one women's. Adding more is
+  one PNG plus one entry; see [The catalog](#the-catalog).
+- **The Luma profile is verified in software only**, at 2160×3840. The
+  holographic art direction still needs the real panel.
+- **The camera is not released on the idle reset.** Deliberate — re-acquiring
+  costs 1–3s of black screen every timeout, and the framing guide exists so
+  people are standing correctly *before* they interact. Leaks are fixed; the
+  stream is just held.
+
+---
+
 ## Architecture
 
 ```
@@ -135,45 +244,25 @@ whether the garments actually *fit* — that needs a real key and human eyes.
 
 ---
 
-## Deploying
+## Hosting and kiosk behaviour
 
-1. Cloudflare Pages → Create project → connect this repo.
-2. Build command `npm run build`, output directory `dist`.
-3. Add the `FAL_KEY` environment variable.
-4. Deploy. It serves from the root, so no `base` change is needed.
+The step-by-step is in [Status and next steps](#status-and-next-steps); this
+is what the app does once it is up.
 
-`_headers`, `_redirects` and `_routes.json` ship from `public/` and are applied
-automatically.
+It serves from the root, so no `base` change is needed. `_headers`,
+`_redirects` and `_routes.json` ship from `public/` and Pages applies them
+automatically — including `_routes.json`, which confines the Function to
+`/api/*` so serving the SPA and the 17 MB of vendored MediaPipe costs no
+Function invocations.
 
-### Kiosk setup
+For unattended operation the app:
 
-Launch Chrome with:
-
-```
-chrome --kiosk --app=https://<project>.pages.dev \
-       --autoplay-policy=no-user-gesture-required
-```
-
-Camera access must never prompt, which needs the `VideoCaptureAllowedUrls`
-enterprise policy. Wildcards are not supported — list the origin explicitly:
-
-```json
-{ "VideoCaptureAllowedUrls": ["https://<project>.pages.dev"] }
-```
-
-The app requests a Screen Wake Lock and re-acquires it on `visibilitychange`
-(the browser drops the lock whenever the page is hidden, which is exactly the
-case we are guarding against). `manifest.webmanifest` declares
-`display: fullscreen` for installed use.
-
-### Monitoring
-
-Point [cron-job.org](https://cron-job.org) at `/api/health` every 10 minutes
-with failure email on. Keep-warm is an advertised use of their free tier.
-UptimeRobot's free tier became non-commercial-only in December 2024.
-
-The kiosk also reloads itself after three consecutive inference failures, and
-resets to the attract screen after 60s idle.
+- requests a **Screen Wake Lock** and re-acquires it on `visibilitychange`,
+  because the browser drops the lock whenever the page is hidden — which is
+  exactly the case being guarded against
+- **resets to the attract screen** after 60s idle
+- **reloads itself** after three consecutive inference failures
+- declares `display: fullscreen` in `manifest.webmanifest` for installed use
 
 ---
 
@@ -291,15 +380,12 @@ scripts/
   chrome-headless.sh        launches Chrome with a fake camera
 ```
 
-### Notes on two deliberate choices
-
-**The camera stream is not released on idle reset.** Re-acquiring costs 1–3s of
-black screen on every timeout, and the framing guide exists precisely so people
-are standing correctly *before* they interact. The stream is held in a ref and
-every track is stopped on unmount; StrictMode's double-invoke no longer leaks a
-second stream.
+### One sizing decision worth knowing
 
 **Only the SIMD MediaPipe build is vendored** (~12 MB). The nosimd fallback
 would add another 11 MB for browsers that have not existed for years. If SIMD
 is genuinely unavailable the landmarker fails to initialise, which costs the
 framing guide and nothing else — the kiosk still works end to end.
+
+(The other deliberate choice, holding the camera stream open across idle
+resets, is covered in [Known gaps](#known-gaps).)
